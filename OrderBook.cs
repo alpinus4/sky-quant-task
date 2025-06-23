@@ -95,13 +95,18 @@ public class OrderBook
         {
             // get best
             // take from it
-            var (bestPrice, bestQueue) = map.First();
+            var (_, bestQueue) = map.First();
             var bestOrderId = bestQueue.Peek();
             if (_orderIdToObjectMap[bestOrderId].quantity >= newOrder.quantity)
             {
                 // best order eats new order
                 _orderIdToObjectMap[bestOrderId].quantity -= newOrder.quantity;
                 DeleteOrder(newOrder);
+                if (_orderIdToObjectMap[bestOrderId].quantity == 0)
+                {
+                    // quantities sometimes might be equal
+                    DeleteOrder(_orderIdToObjectMap[bestOrderId]);
+                }
                 break;
             }
             // best order is eaten by new order
