@@ -4,7 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-public class RemovableQueue<T> : IEnumerable<T>
+public class QueueWithRemove<T> : IEnumerable<T>
 {
     private readonly LinkedList<T> _list = new();
     private readonly Dictionary<T, LinkedListNode<T>> _map = new();
