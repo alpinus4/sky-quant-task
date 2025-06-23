@@ -5,7 +5,7 @@ using OrderId = Int64;
 public class OrderQueue
 {
     private readonly QueueWithRemove<OrderId> _queueWithRemove = new ();
-    public long QtyCounter { get; private set; }
+    public long QtyCounter { get; set; }
     
     public int Count => _queueWithRemove.Count;
 

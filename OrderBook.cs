@@ -45,39 +45,39 @@ public class OrderBook
         return orders;
     }
 
-    private Price GetBestBuyPrice()
+    private Price? GetBestBuyPrice()
     {
-        if (_buyMap.Count == 0) return 0;
+        if (_buyMap.Count == 0) return null;
         return _buyMap.First().Key;
     }
     
-    private long GetBestBuyTotalQty()
+    private long? GetBestBuyTotalQty()
     {
-        if (_buyMap.Count == 0) return 0;
+        if (_buyMap.Count == 0) return null;
         return _buyMap.First().Value.QtyCounter;
     }
     
-    private long GetBestBuyOrderCount()
+    private long? GetBestBuyOrderCount()
     {
-        if (_buyMap.Count == 0) return 0;
+        if (_buyMap.Count == 0) return null;
         return _buyMap.First().Value.Count;
     }
 
-    private Price GetBestSellPrice()
+    private Price? GetBestSellPrice()
     {
-        if (_sellMap.Count == 0) return 0;
+        if (_sellMap.Count == 0) return null;
         return _sellMap.First().Key;
     }
     
-    private long GetBestSellTotalQty()
+    private long? GetBestSellTotalQty()
     {
-        if (_sellMap.Count == 0) return 0;
+        if (_sellMap.Count == 0) return null;
         return _sellMap.First().Value.QtyCounter;
     }
     
-    private long GetBestSellOrderCount()
+    private long? GetBestSellOrderCount()
     {
-        if (_sellMap.Count == 0) return 0;
+        if (_sellMap.Count == 0) return null;
         return _sellMap.First().Value.Count;
     }
 
@@ -117,7 +117,7 @@ public class OrderBook
 
     private void ResolveOrders(Order newOrder)
     {
-        if (GetBestSellPrice() == 0 ||  GetBestBuyPrice() == 0) return; // nothing to resolve
+        if (GetBestSellPrice() == null || GetBestBuyPrice() == null) return; // nothing to resolve
 
         if (newOrder.side == OrderSide.Buy)
         {
@@ -143,14 +143,30 @@ public class OrderBook
         _orderIdToObjectMap[order.orderId] = order;
         
         // if exceeds limit, resolve
-        ResolveOrders(order);
+        if (order.sourceTime >= 24300006000 && order.sourceTime <= 53400000000)
+        {
+            ResolveOrders(order);
+        }
     }
     
     private void ModifyOrder(Order order)
     {
+        if (!_orderIdToObjectMap.ContainsKey(order.orderId))
+        {
+            AddOrder(order);
+            return;
+        }
+        
+        var map = order.side ==  OrderSide.Buy ? _buyMap : _sellMap;
+        var queue = map[order.price];
+        var qty_diff = _orderIdToObjectMap[order.orderId].quantity - order.quantity;
+        queue.QtyCounter -= qty_diff;
         _orderIdToObjectMap[order.orderId] = order;
         // if exceeds limit, resolve
-        ResolveOrders(order);
+        if (order.sourceTime >= 24300006000 && order.sourceTime <= 53400000000)
+        {
+            ResolveOrders(order);
+        }
     }
     
     private void DeleteOrder(Order order)
@@ -180,11 +196,11 @@ public class OrderBook
             for (int i = 0; i < orders.Count; i++)
             {
                 var side = orders[i].side != null ? ((int)orders[i].side.Value).ToString() : "";
-                string TryStringIfNotZero(long val) => val == 0 ? "" : val.ToString();
+                string TryStringIfNotNull(long? val) => val is null ? "" : val.ToString();
                 writer.WriteLine($"{orders[i].sourceTime};{side};{orders[i].action};" +
-                                 $"{orders[i].orderId};{orders[i].price};{orders[i].quantity};" +
-                                 $"{TryStringIfNotZero(outputData[i].BestBidPrice)};{TryStringIfNotZero(outputData[i].BestBidQuantity)};{TryStringIfNotZero(outputData[i].BestBidOrderCount)};" +
-                                 $"{TryStringIfNotZero(outputData[i].BestAskPrice)};{TryStringIfNotZero(outputData[i].BestAskQuantity)};{TryStringIfNotZero(outputData[i].BestAskOrderCount)}");
+                                 $"{orders[i].orderId};{orders[i].price};{outputData[i].Quantity};" +
+                                 $"{TryStringIfNotNull(outputData[i].BestBidPrice)};{TryStringIfNotNull(outputData[i].BestBidQuantity)};{TryStringIfNotNull(outputData[i].BestBidOrderCount)};" +
+                                 $"{TryStringIfNotNull(outputData[i].BestAskPrice)};{TryStringIfNotNull(outputData[i].BestAskQuantity)};{TryStringIfNotNull(outputData[i].BestAskOrderCount)}");
             
             }
         }
@@ -201,6 +217,7 @@ public class OrderBook
         sw.Start();
         for (int i = 0; i < orders.Count; i++)
         {
+            var qty = orders[i].quantity;
             if (orders[i].side != null)
             {
                 switch (orders[i].action)
@@ -220,7 +237,8 @@ public class OrderBook
                         break;
                 }
             }
-            output[i] = new OutputData(GetBestBuyPrice(), GetBestBuyTotalQty(), GetBestBuyOrderCount(),  GetBestSellPrice(), GetBestSellTotalQty(), GetBestSellOrderCount());
+
+            output[i] = new OutputData(qty, GetBestBuyPrice(), GetBestBuyTotalQty(), GetBestBuyOrderCount(),  GetBestSellPrice(), GetBestSellTotalQty(), GetBestSellOrderCount());
         }
         sw.Stop();
         
