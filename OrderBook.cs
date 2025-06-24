@@ -172,7 +172,6 @@ public class OrderBook
     private void DeleteOrder(Order order)
     {
         var map = order.side ==  OrderSide.Buy ? _buyMap : _sellMap;
-        // var isBestPrice = order.side ==  OrderSide.Buy ? order.price == GetBestBuyPrice() : order.price == GetBestSellPrice();
         try
         {
             map[order.price].Remove(order.orderId, _orderIdToObjectMap[order.orderId].quantity);
@@ -215,7 +214,7 @@ public class OrderBook
         var output = new OutputData[orders.Count];
         
         var sw = new System.Diagnostics.Stopwatch();
-        for (int k = 0; k < 2; k++)
+        for (int k = 0; k < 5; k++)
         {
             sw.Restart();
             Clear();
