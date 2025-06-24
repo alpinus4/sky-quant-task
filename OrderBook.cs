@@ -172,9 +172,10 @@ public class OrderBook
     private void DeleteOrder(Order order)
     {
         var map = order.side ==  OrderSide.Buy ? _buyMap : _sellMap;
+        // var isBestPrice = order.side ==  OrderSide.Buy ? order.price == GetBestBuyPrice() : order.price == GetBestSellPrice();
         try
         {
-            map[order.price].Remove(order.orderId, order.quantity);
+            map[order.price].Remove(order.orderId, _orderIdToObjectMap[order.orderId].quantity);
             if (map[order.price].Count == 0)
             {
                 map.Remove(order.price);
@@ -214,37 +215,43 @@ public class OrderBook
         var output = new OutputData[orders.Count];
         
         var sw = new System.Diagnostics.Stopwatch();
-        sw.Start();
-        for (int i = 0; i < orders.Count; i++)
+        for (int k = 0; k < 2; k++)
         {
-            var qty = orders[i].quantity;
-            if (orders[i].side != null)
+            sw.Restart();
+            Clear();
+            for (int i = 0; i < orders.Count; i++)
             {
-                switch (orders[i].action)
+                var qty = orders[i].quantity;
+                if (orders[i].side != null)
                 {
-                    case 'Y':
-                    case 'F':
-                        Clear();
-                        break;
-                    case 'A':
-                        AddOrder(orders[i]);
-                        break;
-                    case 'M':
-                        ModifyOrder(orders[i]);
-                        break;
-                    case 'D':
-                        DeleteOrder(orders[i]);
-                        break;
+                    switch (orders[i].action)
+                    {
+                        case 'Y':
+                        case 'F':
+                            Clear();
+                            break;
+                        case 'A':
+                            AddOrder(orders[i]);
+                            break;
+                        case 'M':
+                            ModifyOrder(orders[i]);
+                            break;
+                        case 'D':
+                            DeleteOrder(orders[i]);
+                            break;
+                    }
                 }
+
+                output[i] = new OutputData(qty, GetBestBuyPrice(), GetBestBuyTotalQty(), GetBestBuyOrderCount(),
+                    GetBestSellPrice(), GetBestSellTotalQty(), GetBestSellOrderCount());
             }
 
-            output[i] = new OutputData(qty, GetBestBuyPrice(), GetBestBuyTotalQty(), GetBestBuyOrderCount(),  GetBestSellPrice(), GetBestSellTotalQty(), GetBestSellOrderCount());
+            sw.Stop();
+
+            Console.WriteLine($"Total time [us]: {sw.ElapsedMilliseconds * 1000.0:F3}");
+            Console.WriteLine($"Time per tick [us]: {sw.ElapsedMilliseconds * 1000.0 / orders.Count:F3}");
+
+            OutputToCsv("out.csv", orders, output);
         }
-        sw.Stop();
-        
-        Console.WriteLine($"Total time [us]: {sw.ElapsedMilliseconds * 1000.0:F3}");
-        Console.WriteLine($"Time per tick [us]: {sw.ElapsedMilliseconds * 1000.0 / orders.Count:F3}");
-        
-        OutputToCsv("out.csv", orders, output);
     }
 }
