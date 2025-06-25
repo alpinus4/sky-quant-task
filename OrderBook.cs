@@ -117,15 +117,16 @@ public class OrderBook
 
     private void ResolveOrders(Order newOrder)
     {
-        if (GetBestSellPrice() == null || GetBestBuyPrice() == null) return; // nothing to resolve
+        var bestPrice = newOrder.side == OrderSide.Buy ? GetBestSellPrice() : GetBestBuyPrice();
+        if (bestPrice == null) return; // nothing to resolve
 
         if (newOrder.side == OrderSide.Buy)
         {
-            ResolveOrdersPartial(newOrder, () => newOrder.price >= GetBestSellPrice(), _sellMap);
+            ResolveOrdersPartial(newOrder, () => newOrder.price >= bestPrice, _sellMap);
         }
         else
         {
-            ResolveOrdersPartial(newOrder, () => newOrder.price <= GetBestBuyPrice(), _buyMap);
+            ResolveOrdersPartial(newOrder, () => newOrder.price <= bestPrice, _buyMap);
         }
     }
     
@@ -212,9 +213,13 @@ public class OrderBook
         Console.WriteLine(orders.Count);
 
         var output = new OutputData[orders.Count];
+        for (int i = 0; i < orders.Count; i++)
+        {
+            output[i] = new OutputData(); // Allocate once
+        }
         
         var sw = new System.Diagnostics.Stopwatch();
-        for (int k = 0; k < 5; k++)
+        for (int k = 0; k < 10; k++)
         {
             sw.Restart();
             Clear();
@@ -241,7 +246,7 @@ public class OrderBook
                     }
                 }
 
-                output[i] = new OutputData(qty, GetBestBuyPrice(), GetBestBuyTotalQty(), GetBestBuyOrderCount(),
+                output[i].Set(qty, GetBestBuyPrice(), GetBestBuyTotalQty(), GetBestBuyOrderCount(),
                     GetBestSellPrice(), GetBestSellTotalQty(), GetBestSellOrderCount());
             }
 
